@@ -1,41 +1,48 @@
 {
   "expo": {
-    "name": "app_mapaZZZ",
-    "slug": "app_mapaZZZ",
+    "name": "MapaZZZ",
+    "slug": "mapazzz-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "O aplicativo MapaZZZ precisa acessar sua câmera para tirar fotos de focos de malária.",
+        "NSLocationWhenInUseUsageDescription": "O aplicativo MapaZZZ precisa acessar sua localização para mapear os focos de malária."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
     },
     "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router",
       [
-        "expo-splash-screen",
+        "expo-image-picker",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "photosPermission": "O aplicativo MapaZZZ precisa acessar suas fotos para selecionar imagens de focos de malária.",
+          "cameraPermission": "O aplicativo MapaZZZ precisa acessar sua câmera para tirar fotos de focos de malária."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O aplicativo MapaZZZ precisa acessar sua localização para mapear os focos de malária."
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }

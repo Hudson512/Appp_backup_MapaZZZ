@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker"
 import { Ionicons } from "@expo/vector-icons"
 import type { User } from "../services/auth"
 import BottomNavBar from "../components/BottomNavBar"
+import { combineOverlappingCircles, calculateDistance } from "../services/map_settings/circleUtils";
 
 interface HomeScreenProps {
   onImageSelected: (uri: string) => void
@@ -26,13 +27,14 @@ interface HomeScreenProps {
 }
 
 export default function HomeScreen({ onImageSelected, onLogout, user }: HomeScreenProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [hotspots, setHotspots] = useState([
-    { id: 1, latitude: -8.838333, longitude: 13.234444, intensity: 1 },
-    { id: 2, latitude: -8.839333, longitude: 13.236444, intensity: 0.8 },
-    { id: 3, latitude: -8.841333, longitude: 13.238444, intensity: 0.6 },
-    { id: 4, latitude: -8.843333, longitude: 13.240444, intensity: 0.4 },
-  ])
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mapZoom, setMapZoom] = useState(0.0922); // Estado para rastrear o zoom (latitudeDelta)
+
+  const clusters = [
+    { location: { latitude: -8.896, longitude: 13.234 }, intensity: 2.1, count: 10, highestRisk: "confirmed" },
+    { location: { latitude: -8.843, longitude: 13.267 }, intensity: 1.2, count: 5, highestRisk: "high" },
+    { location: { latitude: -8.850, longitude: 13.250 }, intensity: 0.6, count: 3, highestRisk: "low" },
+  ];
 
   // Solicitar permissões da câmera quando o componente montar
   useEffect(() => {
@@ -92,10 +94,24 @@ export default function HomeScreen({ onImageSelected, onLogout, user }: HomeScre
 
   // Função para determinar a cor com base na intensidade
   const getIntensityColor = (intensity: number) => {
-    if (intensity > 0.8) return "rgba(255, 0, 0, 0.5)" // Vermelho
-    if (intensity > 0.5) return "rgba(255, 255, 0, 0.5)" // Amarelo
-    return "rgba(0, 255, 0, 0.5)" // Verde
+    if (intensity > 1.5) return "rgba(255, 0, 0, 0.53)"; // Vermelho
+    if (intensity > 1.0) return "rgba(255, 157, 0, 0.47)"; // Laranja
+    if (intensity > 0.5) return "rgba(255, 225, 0, 0.56)"; // Amarelo
   }
+
+  const combinedClusters = combineOverlappingCircles(clusters);
+
+  // Função para calcular o raio ajustado com base no zoom
+  const getAdjustedRadius = (intensity: number) => {
+    const baseRadius = 800; // Raio base
+    const zoomFactor = mapZoom / 0.0922; // Cálculo invertido com base no zoom inicial
+    const adjustedRadius = baseRadius * zoomFactor;
+
+    // Limitar o tamanho do círculo
+    const minRadius = 100; // Raio mínimo
+    const maxRadius = 1000; // Raio máximo
+    return Math.max(minRadius, Math.min(adjustedRadius, maxRadius));
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,7 +157,7 @@ export default function HomeScreen({ onImageSelected, onLogout, user }: HomeScre
         </View>
       </View>
 
-      {/* Mapa com círculos coloridos em vez de heatmap */}
+      {/* Mapa com círculos coloridos */}
       <View style={styles.mapContainer}>
         <MapView
           style={styles.map}
@@ -151,34 +167,29 @@ export default function HomeScreen({ onImageSelected, onLogout, user }: HomeScre
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
+          onRegionChangeComplete={(region) => {
+            setMapZoom(region.latitudeDelta); // Atualizar o zoom com base no latitudeDelta
+          }}
         >
-          {hotspots.map((hotspot) => (
+          {/* Renderizar clusters combinados */}
+          {combinedClusters.map((cluster, index) => (
             <Circle
-              key={hotspot.id}
-              center={{
-                latitude: hotspot.latitude,
-                longitude: hotspot.longitude,
-              }}
-              radius={500 + hotspot.intensity * 500} // Raio baseado na intensidade
-              fillColor={getIntensityColor(hotspot.intensity)}
+              key={`cluster-${index}`}
+              center={cluster.location}
+              radius={getAdjustedRadius(cluster.intensity)} // Ajustar o raio dinamicamente
+              fillColor={getIntensityColor(cluster.intensity)}
               strokeWidth={0}
             />
           ))}
 
-          {/* Adicionar marcadores para os pontos principais */}
-          {hotspots
-            .filter((h) => h.intensity > 0.7)
-            .map((hotspot) => (
-              <Marker
-                key={`marker-${hotspot.id}`}
-                coordinate={{
-                  latitude: hotspot.latitude,
-                  longitude: hotspot.longitude,
-                }}
-                title="Foco de Malária"
-                description={`Intensidade: ${Math.round(hotspot.intensity * 100)}%`}
-              />
-            ))}
+          {combinedClusters.map((cluster, index) => (
+            <Marker
+              key={`marker-${index}`}
+              coordinate={cluster.location}
+              title={`Risco: ${cluster.highestRisk}`}
+              description={`Relatórios: ${cluster.count}`}
+            />
+          ))}
         </MapView>
       </View>
 
